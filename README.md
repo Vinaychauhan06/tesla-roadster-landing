@@ -37,7 +37,7 @@ npm run watch     # train it yourself and watch every attempt animate live
 | `npm run flip` | Experimental: tries to teach a full mid-air flip before landing (see below) |
 | `npm run view` | Re-plays a run's logged attempts as the live animation |
 | `npm run replay` | Renders `learning_replay.mp4` (attempts in order) and `logs/learning_curve.png` |
-| `npm run video` | After training: a ~45 s square video for LinkedIn/Instagram (`roadster_video.mp4`). It picks real attempts from your run (crashes, first landing, closer, best landing) and ends with a 20-attempt test. Add `-- --reel` for a vertical 1080×1920 Reel/TikTok/Short, and `--cta "DM me ROADSTER"` for your own end-card call to action |
+| `npm run video` | After training: a ~45 s square video for LinkedIn/Instagram (`roadster_video.mp4`). It picks real attempts from your run (crashes, first landing, closer, best landing) and ends with a 20-attempt test. Add `-- --reel` for a vertical 1080×1920 Reel/TikTok/Short, and `--cta "Comment LINK"`, `--badge "AI PROJECT FOR YOUR RESUME"` and `--resume` for your own text. It comes with an original synthesised soundtrack (music, jet hiss, crash booms, a landing chime; `--no-music` turns it off) |
 | `npm run scripted` | The original hand-written pilot, rendered to `car_jump.gif` |
 
 Pass extra options after `--`:
@@ -112,6 +112,7 @@ The full replay of 66 attempts in order is in [`assets/learning_replay.mp4`](ass
 | `live_view.py` | Live animation window that plays every logged attempt during or after training |
 | `replay_attempts.py` | Replay video of chosen attempts, plus the learning-curve chart |
 | `make_jump_gifs.py` | 20-attempt test and GIF rendering of a trained model |
+| `soundtrack.py` | Original music and sound effects for the video, synthesised from scratch (no samples, no copyright) |
 | `make_video.py` | Social-media video from a training run. Adds crash effects (blast, flash, shake, tumbling wreck, fire) for the video only: in the simulation an attempt simply ends at the impact |
 | `cli.js`, `package.json` | The npm commands |
 | `models/pretrained_t67.zip` | The included trained AI (landing spot at x = 67 m). Training never overwrites it: your runs save as `models/jump_t<spot>_s<seed>_final.zip` |

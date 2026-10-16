@@ -9,6 +9,11 @@ Scenes are picked automatically from logs/ (so run training first):
     npm run video -- --out ~/Desktop/post.mp4
     npm run video -- --reel                   # 1080x1920 for Instagram Reels / TikTok / Shorts
     npm run video -- --reel --cta "DM me ROADSTER for the GitHub link"
+    npm run video -- --reel --resume --badge "AI PROJECT FOR YOUR RESUME" --cta 'Comment "LINK" and I'll DM you the GitHub'
+    npm run video -- --no-music
+
+It comes with an original synthesised soundtrack (soundtrack.py): music plus jet hiss,
+crash booms, touchdown thuds and a chime on the perfect landing, timed to the video.
 
 The crash tumble, fire, flash and shake are video effects only; in the simulation an
 attempt simply ends at the moment of impact.
@@ -25,6 +30,7 @@ from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 from car_jump import CarJumpEnv, DPI, FIGH, FIGW, H_M, Y_BOTTOM, Smoke, crash_burst, draw_scene, emit, post, rollout
 from replay_attempts import crash_reason, load_attempts, to_frames
+from soundtrack import make_soundtrack
 
 FPS = 30
 SIZE = 1080  # width
@@ -198,6 +204,7 @@ def render_scene(scene):
     fig.patch.set_facecolor("#03040a")
     ax = fig.add_axes([0, 0, 1, 1])
     sm, cam, wr, prev, impact_at, out, flashes = Smoke(), None, 0.0, 0.0, None, [], []
+    touchdown_at, thrust = None, []
     for t in idx:
         f = frames[int(t)]
         dt = max((t - prev) * CarJumpEnv.DT, CarJumpEnv.DT * 0.3)
@@ -207,6 +214,8 @@ def render_scene(scene):
             impact_at = len(out)
             for _ in range(2 if mode == "crash" else 1):
                 crash_burst(sm, f, rng)
+        if landed and f["post"] and touchdown_at is None:
+            touchdown_at = len(out)
         if f.get("wreck"):
             wreck_fx(sm, f, rng)
         sm.step(dt)
@@ -223,8 +232,11 @@ def render_scene(scene):
         fig.canvas.draw()
         out.append(post(np.asarray(fig.canvas.buffer_rgba())[..., :3].copy(), rng))
         flashes.append(0.0 if since is None else 0.55 * max(0.0, 1 - since / 6))
+        thrust.append(f["th"])
     plt.close(fig)
-    return [compose(img, n, total, head, sub, colour, i / len(out), flashes[i]) for i, img in enumerate(out)]
+    events = dict(frames=len(out), thrust=thrust, impact=impact_at if mode == "crash" else None,
+                  touchdown=touchdown_at, perfect=landed and mode == "slowmo")
+    return [compose(img, n, total, head, sub, colour, i / len(out), flashes[i]) for i, img in enumerate(out)], events
 
 
 def compose(scene_img, attempt, total, head, sub, colour, t, flash=0.0):
@@ -244,6 +256,13 @@ def compose(scene_img, attempt, total, head, sub, colour, t, flash=0.0):
         scene = Image.blend(scene, Image.new("RGB", scene.size, (255, 70, 40)), flash)
     canvas.paste(scene, (0, y0))
     d = ImageDraw.Draw(canvas)
+    badge = os.environ.get("ROADSTER_BADGE")
+    if badge:  # e.g. "AI PROJECT FOR YOUR RESUME", a pill over the road
+        bf = font(BOLD, 34)
+        bw = bf.getlength(badge) + 56
+        by = y0 + h - 78
+        d.rounded_rectangle(((SIZE - bw) / 2, by, (SIZE + bw) / 2, by + 56), 28, fill=(63, 185, 80))
+        d.text((SIZE // 2, by + 28), badge, font=bf, fill=(6, 22, 10), anchor="mm")
     fade = min(1.0, t * 6)  # headline fades in over the first part of the scene
     c = tuple(int(v * fade + b * (1 - fade)) for v, b in zip((255, 255, 255), BG))
     d.text((SIZE // 2, L["head_y"]), head, font=fitted(BOLD, L["head"], head), fill=c, anchor="mm")
@@ -275,34 +294,50 @@ def test_model(path, attempts=20):
     return on_spot, attempts, (np.mean(landed) if landed else None)
 
 
-def end_card(last_frame, stats, first_perfect, cta=None, seconds=5.5):
+def end_card(last_frame, stats, first_perfect, cta=None, resume=False, seconds=None):
     base = Image.fromarray(last_frame).filter(ImageFilter.GaussianBlur(14))
-    base = Image.blend(base, Image.new("RGB", base.size, BG), 0.55)
-    y = L["card"]
-    lines = []
+    base = Image.blend(base, Image.new("RGB", base.size, BG), 0.6)
+    white, soft, blue = (255, 255, 255), (220, 224, 232), (120, 180, 255)
+    lines = []  # (font, text, colour, space above, pulses)
     if stats:
         on_spot, n, mean_miss = stats
-        lines += [(font(BOLD, 96), f"{on_spot} / {n}", (255, 255, 255), y[0]),
-                  (font(REG, 44), "landings on the spot", (220, 224, 232), y[1])]
+        lines += [(font(BOLD, 96), f"{on_spot} / {n}", white, 0, False),
+                  (font(REG, 44), "landings on the spot", soft, 70, False)]
         if mean_miss is not None:
-            lines += [(font(BOLD, 64), f"{mean_miss:.2f} m", GREEN, y[2]),
-                      (font(REG, 40), "average distance from the target", (220, 224, 232), y[3])]
+            lines += [(font(BOLD, 64), f"{mean_miss:.2f} m", GREEN, 120, False),
+                      (font(REG, 40), "average distance from the target", soft, 62, False)]
     if first_perfect:
-        lines += [(font(REG, 40), f"Learned it in {first_perfect} attempts", (220, 224, 232), y[4])]
-    if cta:  # e.g. a DM call to action instead of the link
-        lines += [(fitted(BOLD, 54, cta), cta, (120, 180, 255), y[5]),
-                  (font(REG, 34), "Python  ·  Gymnasium  ·  Reinforcement learning", GREY, y[6])]
+        lines += [(font(REG, 40), f"Learned it in {first_perfect} attempts", soft, 95, False)]
+    if resume:
+        lines += [(fitted(BOLD, 62, "ADD THIS TO YOUR RESUME"), "ADD THIS TO YOUR RESUME", GREEN, 150, False),
+                  (font(REG, 34), "Python  ·  Gymnasium  ·  Reinforcement learning", GREY, 62, False)]
+    if cta:
+        lines += [(fitted(BOLD, 54, cta), cta, blue, 140, True)]
+        if not resume:
+            lines += [(font(REG, 34), "Python  ·  Gymnasium  ·  Reinforcement learning", GREY, 62, False)]
     else:
-        lines += [(font(MONO, 30), REPO, (120, 180, 255), y[5]),
-                  (font(REG, 30), "Open source: link in the comments", GREY, y[6])]
+        lines += [(font(MONO, 30), REPO, blue, 140, False),
+                  (font(REG, 30), "Open source: link in the comments", GREY, 55, False)]
+    height = sum(gap for *_, gap, _ in lines)
+    y = (L["H"] - height) / 2 - (60 if "scene_h" in L else 0)   # a little high on a reel, clear of the caption
+    placed = []
+    for fnt, text, col, gap, pulse in lines:
+        y += gap
+        placed.append((fnt, text, col, y, pulse))
+
+    seconds = seconds or (7.0 if cta else 5.5)
     out = []
-    n = int(seconds * FPS)
-    for i in range(n):
+    for i in range(int(seconds * FPS)):
         im = base.copy()
         d = ImageDraw.Draw(im)
-        for k, (fnt, text, col, y) in enumerate(lines):
+        for k, (fnt, text, col, y, pulse) in enumerate(placed):
             a = np.clip((i - k * 4) / 10, 0, 1)  # each line fades in after the previous one
             c = tuple(int(v * a + b * (1 - a)) for v, b in zip(col, BG))
+            if pulse and a == 1:  # gently pulsing call to action, boxed
+                glow = 0.5 + 0.5 * np.sin(i / FPS * 2 * np.pi * 0.8)
+                w = fnt.getlength(text) + 60
+                d.rounded_rectangle(((SIZE - w) / 2, y - 48, (SIZE + w) / 2, y + 48), 24,
+                                    outline=tuple(int(v * (0.5 + 0.5 * glow)) for v in col), width=4)
             d.text((SIZE // 2, y), text, font=fnt, fill=c, anchor="mm")
         out.append(np.asarray(im))
     return out
@@ -314,7 +349,12 @@ if __name__ == "__main__":
     parser.add_argument("--name", default="jump_t67_s0", help="the training run whose final model is tested")
     parser.add_argument("--reel", action="store_true", help="vertical 1080x1920 (Reels, TikTok, Shorts)")
     parser.add_argument("--cta", help='end-card call to action, e.g. "DM me ROADSTER for the GitHub link"')
+    parser.add_argument("--resume", action="store_true", help='end card says "ADD THIS TO YOUR RESUME"')
+    parser.add_argument("--badge", help='a pill shown over every scene, e.g. "AI PROJECT FOR YOUR RESUME"')
+    parser.add_argument("--no-music", action="store_true", help="silent video, no soundtrack")
     args = parser.parse_args()
+    if args.badge:
+        os.environ["ROADSTER_BADGE"] = args.badge
     os.environ["ROADSTER_LAYOUT"] = "reel" if args.reel else "square"   # picked up by the workers
     L = LAYOUTS[os.environ["ROADSTER_LAYOUT"]]
     OUT = os.path.expanduser(args.out)
@@ -327,11 +367,37 @@ if __name__ == "__main__":
     model = f"models/{args.name}_final.zip"
     stats = test_model(model) if os.path.exists(model) else None
     print(f"Rendering {len(scenes)} scenes on {os.cpu_count()} cores (a few minutes) ...")
+    import tempfile
+    tmp = tempfile.mkdtemp()
+    silent = OUT if args.no_music else os.path.join(tmp, "video.mp4")
+    writer = imageio.get_writer(silent, fps=FPS, codec="libx264", quality=None, macro_block_size=8,
+                                output_params=["-crf", "20", "-preset", "slow", "-movflags", "+faststart"])
+    timeline, frame_no, last = [], 0, None
     with Pool() as pool:
-        clips = pool.map(render_scene, scenes)
-    frames = [f for clip in clips for f in clip]
-    frames += end_card(frames[-1], stats, first_perfect, args.cta)
-    imageio.mimwrite(OUT, frames, fps=FPS, codec="libx264", quality=None,
-                     output_params=["-crf", "20", "-preset", "slow", "-pix_fmt", "yuv420p",
-                                    "-movflags", "+faststart"], macro_block_size=8)
-    print(f"Saved {OUT}: {len(frames) / FPS:.1f} s, {os.path.getsize(OUT) / 1e6:.1f} MB")
+        for frames, ev in pool.imap(render_scene, scenes):   # written as they arrive, in order
+            for f in frames:
+                writer.append_data(f)
+            timeline.append(dict(start=frame_no / FPS, thrust=ev["thrust"], perfect=ev["perfect"],
+                                 impact=None if ev["impact"] is None else (frame_no + ev["impact"]) / FPS,
+                                 touchdown=None if ev["touchdown"] is None else (frame_no + ev["touchdown"]) / FPS))
+            frame_no += len(frames)
+            last = frames[-1]
+            del frames
+    card_start = frame_no / FPS
+    card = end_card(last, stats, first_perfect, args.cta, args.resume)
+    for f in card:
+        writer.append_data(f)
+    frame_no += len(card)
+    writer.close()
+    duration = frame_no / FPS
+
+    if not args.no_music:
+        wav = os.path.join(tmp, "music.wav")
+        make_soundtrack(wav, duration, FPS, timeline, card_start)
+        import subprocess
+        import imageio_ffmpeg
+        subprocess.run([imageio_ffmpeg.get_ffmpeg_exe(), "-y", "-loglevel", "error", "-i", silent, "-i", wav,
+                        "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-shortest", "-movflags", "+faststart",
+                        OUT], check=True)
+    print(f"Saved {OUT}: {duration:.1f} s, {os.path.getsize(OUT) / 1e6:.1f} MB"
+          + ("" if args.no_music else ", with soundtrack"))
