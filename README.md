@@ -18,7 +18,7 @@ Nobody programs the flight. The AI starts out pressing random controls and crash
 You need **Node.js 16+** and **Python 3.10+**.
 
 ```bash
-git clone https://github.com/<your-username>/tesla-roadster-landing.git
+git clone https://github.com/Vinaychauhan06/tesla-roadster-landing.git
 cd tesla-roadster-landing
 npm run setup     # once: makes .venv/ and installs the Python packages (PyTorch is large)
 npm run demo      # the trained AI: 20-attempt test + renders car_jump_ai.gif
