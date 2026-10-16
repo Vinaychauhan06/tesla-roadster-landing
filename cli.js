@@ -1,11 +1,11 @@
 #!/usr/bin/env node
-// car-jump: npm front end for the Python project.
+// Tesla Roadster Landing: npm front end for the Python project.
 // It keeps a private Python environment in .venv/ and runs the scripts there.
 //
-//   npx car-jump setup         one-time install (Python 3.10+ needed)
-//   npx car-jump demo          trained AI: 20-attempt test + car_jump_ai.gif
-//   npx car-jump watch         train with the live animation of every attempt
-//   npx car-jump help          everything else
+//   npx roadster-landing setup         one-time install (Python 3.10+ needed)
+//   npx roadster-landing demo          trained AI: 20-attempt test + car_jump_ai.gif
+//   npx roadster-landing watch         train with the live animation of every attempt
+//   npx roadster-landing help          everything else
 
 "use strict";
 const { spawnSync } = require("child_process");
@@ -64,8 +64,8 @@ function setup() {
 }
 
 function help() {
-  console.log("car-jump: teach a jet-pack car to jump parked cars and land on a spot (Gymnasium + PPO)\n");
-  console.log("usage: npm run <command> [-- extra args]   or   npx car-jump <command> [extra args]\n");
+  console.log("Tesla Roadster Landing: teach a jet-pack Roadster to jump parked cars and land on a spot (Gymnasium + PPO)\n");
+  console.log("usage: npm run <command> [-- extra args]   or   npx roadster-landing <command> [extra args]\n");
   for (const [name, c] of Object.entries(COMMANDS)) console.log(`  ${name.padEnd(9)} ${c.help}`);
   console.log("\nexamples:");
   console.log("  npm run train -- --target 80          land on a different spot");

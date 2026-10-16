@@ -1,9 +1,9 @@
 {
-  "name": "car-jump-rl",
+  "name": "tesla-roadster-landing",
   "version": "1.0.0",
-  "description": "Reinforcement learning (Gymnasium + PPO) teaches a jet-pack car to jump parked cars and land on a spot, rendered as GIFs and a live animation of every attempt.",
+  "description": "Tesla Roadster Landing: reinforcement learning (Gymnasium + PPO) teaches a jet-pack Roadster to jump parked cars and land on a spot, with GIFs and a live animation of every attempt.",
   "bin": {
-    "car-jump": "cli.js"
+    "roadster-landing": "cli.js"
   },
   "scripts": {
     "setup": "node cli.js setup",
@@ -26,6 +26,7 @@
     "LICENSE"
   ],
   "keywords": [
+    "tesla-roadster",
     "reinforcement-learning",
     "gymnasium",
     "stable-baselines3",

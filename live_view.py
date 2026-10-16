@@ -74,7 +74,7 @@ def attempt_result(rows):
 pygame.init()
 W, H = int(FIGW * DPI * args.scale), int(FIGH * DPI * args.scale)
 screen = pygame.display.set_mode((W, H))
-pygame.display.set_caption("Car jump - live training")
+pygame.display.set_caption("Tesla Roadster Landing - live training")
 clock = pygame.time.Clock()
 
 fig = plt.figure(figsize=(FIGW, FIGH), dpi=DPI)

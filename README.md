@@ -1,8 +1,8 @@
-# Car Jump RL
+# Tesla Roadster Landing
 
-**A jet-pack car teaches itself to jump over parked cars, a Cybertruck and a semi truck, and land on an exact spot. It uses reinforcement learning (Gymnasium + PPO).**
+**A jet-pack Tesla Roadster teaches itself to jump over parked cars, a Cybertruck and a semi truck, and land on an exact spot. It uses reinforcement learning (Gymnasium + PPO).**
 
-![The trained AI jumping the parked cars and landing on the spot](assets/car_jump_ai.gif)
+![The trained AI flying the Roadster over the parked cars and landing on the spot](assets/car_jump_ai.gif)
 
 Nobody programs the flight. The AI starts out pressing random controls and crashes hundreds of times. It gets a score for every attempt and gradually learns what earns points: build up speed, lift off, clear the semi truck, come down gently, and touch down on the spot.
 
@@ -18,8 +18,8 @@ Nobody programs the flight. The AI starts out pressing random controls and crash
 You need **Node.js 16+** and **Python 3.10+**.
 
 ```bash
-git clone https://github.com/<your-username>/car-jump-rl.git
-cd car-jump-rl
+git clone https://github.com/<your-username>/tesla-roadster-landing.git
+cd tesla-roadster-landing
 npm run setup     # once: makes .venv/ and installs the Python packages (PyTorch is large)
 npm run demo      # the trained AI: 20-attempt test + renders car_jump_ai.gif
 npm run watch     # train it yourself and watch every attempt animate live
@@ -119,3 +119,5 @@ The full replay of 66 attempts in order is in [`assets/learning_replay.mp4`](ass
 The environment, scripted pilot and animation are based on *"Car jet-pack jump over cars: GIF code"* (@Vinay). The reinforcement-learning approach follows Gymnasium's Lunar Lander and the Hugging Face Deep RL course.
 
 MIT License.
+
+*A fan project, not affiliated with or endorsed by Tesla, Inc. "Tesla", "Roadster" and "Cybertruck" are trademarks of Tesla, Inc.*
