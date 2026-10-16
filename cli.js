@@ -26,6 +26,7 @@ const COMMANDS = {
   flip: { script: "train_jump.py", args: ["--flip", "--steps", "4000000", "--watch"], help: "teach a mid-air flip, with live animation" },
   view: { script: "live_view.py", help: "replay a run's attempts as a live animation" },
   replay: { script: "replay_attempts.py", help: "render learning_replay.mp4 + logs/learning_curve.png from the logs" },
+  video: { script: "make_video.py", help: "after training: a ~45 s square social-media video (roadster_video.mp4)" },
   scripted: { script: "car_jump.py", help: "the PDF's original scripted pilot -> car_jump.gif" },
 };
 

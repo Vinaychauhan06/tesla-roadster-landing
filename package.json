@@ -14,6 +14,7 @@
     "flip": "node cli.js flip",
     "view": "node cli.js view",
     "replay": "node cli.js replay",
+    "video": "node cli.js video",
     "scripted": "node cli.js scripted",
     "help": "node cli.js help"
   },
@@ -22,8 +23,7 @@
     "*.py",
     "requirements.txt",
     "models/pretrained_t67.zip",
-    "README.md",
-    "LICENSE"
+    "README.md"
   ],
   "keywords": [
     "tesla-roadster",
@@ -35,7 +35,7 @@
     "gif"
   ],
   "author": "Vinay Chauhan",
-  "license": "MIT",
+  "license": "UNLICENSED",
   "engines": {
     "node": ">=16"
   }
