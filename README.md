@@ -37,7 +37,7 @@ npm run watch     # train it yourself and watch every attempt animate live
 | `npm run flip` | Experimental: tries to teach a full mid-air flip before landing (see below) |
 | `npm run view` | Re-plays a run's logged attempts as the live animation |
 | `npm run replay` | Renders `learning_replay.mp4` (attempts in order) and `logs/learning_curve.png` |
-| `npm run video` | After training: a ~45 s square video for LinkedIn/Instagram (`roadster_video.mp4`). It picks real attempts from your run (crashes, first landing, closer, best landing) and ends with a 20-attempt test |
+| `npm run video` | After training: a ~45 s square video for LinkedIn/Instagram (`roadster_video.mp4`). It picks real attempts from your run (crashes, first landing, closer, best landing) and ends with a 20-attempt test. Add `-- --reel` for a vertical 1080×1920 Reel/TikTok/Short, and `--cta "DM me ROADSTER"` for your own end-card call to action |
 | `npm run scripted` | The original hand-written pilot, rendered to `car_jump.gif` |
 
 Pass extra options after `--`:

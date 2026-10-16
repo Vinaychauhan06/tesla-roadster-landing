@@ -7,6 +7,8 @@ Scenes are picked automatically from logs/ (so run training first):
     npm run train                      # or: python train_jump.py
     npm run video                      # -> roadster_video.mp4
     npm run video -- --out ~/Desktop/post.mp4
+    npm run video -- --reel                   # 1080x1920 for Instagram Reels / TikTok / Shorts
+    npm run video -- --reel --cta "DM me ROADSTER for the GitHub link"
 
 The crash tumble, fire, flash and shake are video effects only; in the simulation an
 attempt simply ends at the moment of impact.
@@ -25,7 +27,15 @@ from car_jump import CarJumpEnv, DPI, FIGH, FIGW, H_M, Y_BOTTOM, Smoke, crash_bu
 from replay_attempts import crash_reason, load_attempts, to_frames
 
 FPS = 30
-SIZE = 1080
+SIZE = 1080  # width
+# Where things go. A reel keeps text out of the top ~220 px and bottom ~420 px that the app's buttons cover.
+LAYOUTS = {
+    "square": dict(H=1080, head_y=95, sub_y=170, head=58, sub=40, scene_y=250, caption_gap=45,
+                   card=[300, 385, 520, 590, 700, 830, 885]),
+    "reel": dict(H=1920, head_y=420, sub_y=500, head=66, sub=44, scene_y=560, scene_h=940, caption_gap=None,
+                 card=[520, 610, 760, 835, 960, 1140, 1205]),
+}
+L = LAYOUTS[os.environ.get("ROADSTER_LAYOUT", "square")]  # read in worker processes too
 REPO = "github.com/Vinaychauhan06/tesla-roadster-landing"
 FONTS = {  # first one found is used (macOS, Windows, Linux)
     "bold": ["/System/Library/Fonts/Supplemental/Arial Bold.ttf", "C:/Windows/Fonts/arialbd.ttf",
@@ -218,28 +228,38 @@ def render_scene(scene):
 
 
 def compose(scene_img, attempt, total, head, sub, colour, t, flash=0.0):
-    canvas = Image.new("RGB", (SIZE, SIZE), BG)
-    w, h = SIZE, int(SIZE * scene_img.shape[0] / scene_img.shape[1])
-    y0 = 250
-    scene = Image.fromarray(scene_img).resize((w, h), Image.LANCZOS)
+    canvas = Image.new("RGB", (SIZE, L["H"]), BG)
+    reel = "scene_h" in L
+    if reel:
+        # fill the phone screen: scale the scene up and crop a window around the car (it sits ~40% from the left)
+        h = L["scene_h"]
+        big = Image.fromarray(scene_img).resize((int(scene_img.shape[1] * h / scene_img.shape[0]), h), Image.LANCZOS)
+        x0 = int(np.clip(0.44 * big.width - SIZE / 2, 0, big.width - SIZE))
+        scene = big.crop((x0, 0, x0 + SIZE, h))
+    else:
+        h = int(SIZE * scene_img.shape[0] / scene_img.shape[1])
+        scene = Image.fromarray(scene_img).resize((SIZE, h), Image.LANCZOS)
+    y0 = L["scene_y"]
     if flash:  # red flash on impact
         scene = Image.blend(scene, Image.new("RGB", scene.size, (255, 70, 40)), flash)
     canvas.paste(scene, (0, y0))
     d = ImageDraw.Draw(canvas)
     fade = min(1.0, t * 6)  # headline fades in over the first part of the scene
     c = tuple(int(v * fade + b * (1 - fade)) for v, b in zip((255, 255, 255), BG))
-    d.text((SIZE // 2, 95), head, font=fitted(BOLD, 58, head), fill=c, anchor="mm")
+    d.text((SIZE // 2, L["head_y"]), head, font=fitted(BOLD, L["head"], head), fill=c, anchor="mm")
     sc = tuple(int(v * fade + b * (1 - fade)) for v, b in zip(colour, BG))
-    d.text((SIZE // 2, 170), sub, font=fitted(REG, 40, sub), fill=sc, anchor="mm")
+    d.text((SIZE // 2, L["sub_y"]), sub, font=fitted(REG, L["sub"], sub), fill=sc, anchor="mm")
 
-    # bottom band: attempt counter and a progress bar through training
-    yb = y0 + h + 40
+    # attempt counter and a progress bar through training (above the headline on a reel,
+    # because the app's caption covers the bottom of the screen)
+    yb = 250 if reel else y0 + h + 40
     d.text((60, yb), f"ATTEMPT {attempt}", font=font(MONO, 40), fill=(235, 238, 245))
     d.text((SIZE - 60, yb + 6), f"of {total}", font=font(MONO, 30), fill=GREY, anchor="ra")
-    bar_y = yb + 70
+    bar_y = yb + 66
     d.rounded_rectangle((60, bar_y, SIZE - 60, bar_y + 14), 7, fill=(32, 36, 46))
     d.rounded_rectangle((60, bar_y, 60 + (SIZE - 120) * attempt / total, bar_y + 14), 7, fill=colour)
-    d.text((SIZE // 2, SIZE - 45), "Reinforcement learning  ·  Gymnasium + PPO",
+    cap_y = y0 + h + 50 if reel else L["H"] - L["caption_gap"]
+    d.text((SIZE // 2, cap_y), "Reinforcement learning  ·  Gymnasium + PPO",
            font=font(REG, 28), fill=GREY, anchor="mm")
     return np.asarray(canvas)
 
@@ -255,21 +275,26 @@ def test_model(path, attempts=20):
     return on_spot, attempts, (np.mean(landed) if landed else None)
 
 
-def end_card(last_frame, stats, first_perfect, seconds=5.5):
+def end_card(last_frame, stats, first_perfect, cta=None, seconds=5.5):
     base = Image.fromarray(last_frame).filter(ImageFilter.GaussianBlur(14))
     base = Image.blend(base, Image.new("RGB", base.size, BG), 0.55)
+    y = L["card"]
     lines = []
     if stats:
         on_spot, n, mean_miss = stats
-        lines += [(font(BOLD, 96), f"{on_spot} / {n}", (255, 255, 255), 300),
-                  (font(REG, 44), "landings on the spot", (220, 224, 232), 385)]
+        lines += [(font(BOLD, 96), f"{on_spot} / {n}", (255, 255, 255), y[0]),
+                  (font(REG, 44), "landings on the spot", (220, 224, 232), y[1])]
         if mean_miss is not None:
-            lines += [(font(BOLD, 64), f"{mean_miss:.2f} m", GREEN, 520),
-                      (font(REG, 40), "average distance from the target", (220, 224, 232), 590)]
+            lines += [(font(BOLD, 64), f"{mean_miss:.2f} m", GREEN, y[2]),
+                      (font(REG, 40), "average distance from the target", (220, 224, 232), y[3])]
     if first_perfect:
-        lines += [(font(REG, 40), f"Learned it in {first_perfect} attempts", (220, 224, 232), 700)]
-    lines += [(font(MONO, 30), REPO, (120, 180, 255), 830),
-              (font(REG, 30), "Open source: link in the comments", GREY, 885)]
+        lines += [(font(REG, 40), f"Learned it in {first_perfect} attempts", (220, 224, 232), y[4])]
+    if cta:  # e.g. a DM call to action instead of the link
+        lines += [(fitted(BOLD, 54, cta), cta, (120, 180, 255), y[5]),
+                  (font(REG, 34), "Python  ·  Gymnasium  ·  Reinforcement learning", GREY, y[6])]
+    else:
+        lines += [(font(MONO, 30), REPO, (120, 180, 255), y[5]),
+                  (font(REG, 30), "Open source: link in the comments", GREY, y[6])]
     out = []
     n = int(seconds * FPS)
     for i in range(n):
@@ -287,7 +312,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--out", default="roadster_video.mp4")
     parser.add_argument("--name", default="jump_t67_s0", help="the training run whose final model is tested")
+    parser.add_argument("--reel", action="store_true", help="vertical 1080x1920 (Reels, TikTok, Shorts)")
+    parser.add_argument("--cta", help='end-card call to action, e.g. "DM me ROADSTER for the GitHub link"')
     args = parser.parse_args()
+    os.environ["ROADSTER_LAYOUT"] = "reel" if args.reel else "square"   # picked up by the workers
+    L = LAYOUTS[os.environ["ROADSTER_LAYOUT"]]
     OUT = os.path.expanduser(args.out)
     if not os.path.exists("logs/frames_car1.csv"):
         sys.exit("No training logs yet. Run training first:  npm run train")
@@ -301,7 +330,7 @@ if __name__ == "__main__":
     with Pool() as pool:
         clips = pool.map(render_scene, scenes)
     frames = [f for clip in clips for f in clip]
-    frames += end_card(frames[-1], stats, first_perfect)
+    frames += end_card(frames[-1], stats, first_perfect, args.cta)
     imageio.mimwrite(OUT, frames, fps=FPS, codec="libx264", quality=None,
                      output_params=["-crf", "20", "-preset", "slow", "-pix_fmt", "yuv420p",
                                     "-movflags", "+faststart"], macro_block_size=8)
