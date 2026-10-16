@@ -1,0 +1,41 @@
+{
+  "name": "car-jump-rl",
+  "version": "1.0.0",
+  "description": "Reinforcement learning (Gymnasium + PPO) teaches a jet-pack car to jump parked cars and land on a spot, rendered as GIFs and a live animation of every attempt.",
+  "bin": {
+    "car-jump": "cli.js"
+  },
+  "scripts": {
+    "setup": "node cli.js setup",
+    "demo": "node cli.js demo",
+    "test": "node cli.js test",
+    "train": "node cli.js train",
+    "watch": "node cli.js watch",
+    "flip": "node cli.js flip",
+    "view": "node cli.js view",
+    "replay": "node cli.js replay",
+    "scripted": "node cli.js scripted",
+    "help": "node cli.js help"
+  },
+  "files": [
+    "cli.js",
+    "*.py",
+    "requirements.txt",
+    "models/pretrained_t67.zip",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "reinforcement-learning",
+    "gymnasium",
+    "stable-baselines3",
+    "ppo",
+    "simulation",
+    "gif"
+  ],
+  "author": "Vinay Chauhan",
+  "license": "MIT",
+  "engines": {
+    "node": ">=16"
+  }
+}
